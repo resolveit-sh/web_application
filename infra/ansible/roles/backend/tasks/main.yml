@@ -1,0 +1,63 @@
+- name: Installing packages
+  become: yes
+  apt:
+    name:
+      - openjdk-16-jdk
+      - python3-lxml
+    update_cache: yes
+
+- name: Creating a service user
+  become: yes
+  user:
+    name: "{{ backend_service_user }}"
+    create_home: false
+    shell: /sbin/nologin
+
+- name: Creating a directories for the backend application
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: yes
+  loop:
+    - "{{ backend_directory }}"
+    - "{{ backend_lib_directory }}"
+    - "{{ backend_report_directory }}"
+
+- name: downloading backend artifacts from Nexus
+  become: yes
+  maven_artifact:
+    dest: "{{ backend_jar_file }}"
+    repository_url: "{{ nexus_url }}/{{ nexus_backend_repository_path }}/"
+    group_id: "{{ nexus_group_id }}"
+    artifact_id: "{{ nexus_artifact_id }}"
+    version: "{{ backend_maven_version }}"
+    username: "{{ nexus_login }}"
+    password: "{{ nexus_password }}"
+
+- name: Changing the owner of the sausage-store.jar file
+  become: yes
+  file:
+    path: "{{ backend_directory }}"
+    group: "{{ backend_service_user }}"
+    owner: "{{ backend_service_user }}"
+    recurse: yes
+
+- name: Ensure Sausage Store Backend service unit
+  become: yes
+  template:
+    src: "templates/sausage-store-backend.service.j2"
+    dest: "/etc/systemd/system/sausage-store-backend.service"
+    mode: "644"
+
+- name: Re-reading the systemd configuration
+  become: yes
+  systemd:
+    daemon_reload: yes
+
+- name: Run and autoload sausage-store-backend.service
+  become: yes
+  service:
+    name: "sausage-store-backend"
+    enabled: true
+    state: started

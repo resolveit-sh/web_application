@@ -1,0 +1,12 @@
+[Unit]
+Description=Sausage Store Backend Service
+After=network.target
+[Service]
+User={{ backend_service_user }}
+Group={{ backend_service_user }}
+WorkingDirectory={{ backend_directory }}
+Environment=LOG_PATH={{ backend_directory }}
+Environment=REPORT_PATH={{ backend_report_directory }}
+ExecStart=/usr/bin/java -jar /opt/sausage-store/lib/sausage-store.jar
+[Install]
+WantedBy=multi-user.target

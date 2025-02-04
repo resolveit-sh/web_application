@@ -1,0 +1,116 @@
+- name: Check if Nginx is active
+  become: yes
+  command: systemctl is-active nginx
+  register: nginx_status
+  ignore_errors: true
+
+- name: Stop Nginx if it is running
+  become: yes
+  service:
+    name: nginx
+    state: stopped
+  when: nginx_status.rc == 0
+
+- name: Remove old Node.js repository (if any)
+  become: yes
+  apt_repository:
+    repo: "deb https://deb.nodesource.com/node_16.x {{ ansible_distribution_release }} main"
+    state: absent
+
+    filename: "nodesource.list"
+  ignore_errors: yes
+
+- name: Remove possible leftover .list file if it doesn't match the new syntax
+  become: yes
+  file:
+    path: /etc/apt/sources.list.d/nodesource.list
+    state: absent
+  ignore_errors: yes
+
+- name: Add NodeSource GPG key
+  become: yes
+  apt_key:
+    url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+    keyring: /usr/share/keyrings/nodesource.gpg
+    state: present
+    validate_certs: no
+
+- name: Add repository Node.js
+  become: yes
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_16.x {{ ansible_distribution_release }} main"
+    filename: "nodesource.list"
+    state: present
+    update_cache: yes
+
+- name: Install NodeJs
+  become: yes
+  apt:
+    name: nodejs
+
+- name: Install http-server
+  become: yes
+  npm:
+    name: http-server
+    global: yes
+
+- name: setcap
+  become: yes
+  command: "setcap CAP_NET_BIND_SERVICE=+eip /usr/bin/node "
+
+- name: Creating a service user
+  become: yes
+  user:
+    name: "{{ frontend_service_user }}"
+    create_home: false
+    shell: /sbin/nologin
+
+- name: Create frontend dir
+  become: yes
+  file:
+    path: "{{ frontend_directory }}"
+    state: directory
+    mode: "755"
+
+- name: Download artifacts
+  become: yes
+  get_url:
+    url: "{{nexus_url}}/{{ nexus_frontend_repository_path }}/{{ frontend_version }}/sausage-store-{{ frontend_version }}.tar.gz"
+    dest: "/tmp/sausage-store.tar.gz"
+    url_username: "{{ nexus_login }}"
+    url_password: "{{ nexus_password }}"
+    validate_certs: false
+
+- name: Unarchive artifacts
+  become: yes
+  unarchive:
+    remote_src: yes
+    src: "/tmp/sausage-store.tar.gz"
+    dest: "{{ frontend_directory }}"
+
+- name: chown "{{ frontend_directory }}"
+  become: yes
+  file:
+    state: directory
+    path: "{{ frontend_directory }}"
+    owner: "{{ frontend_service_user }}"
+    group: "{{ frontend_service_user }}"
+    recurse: yes
+
+- name: Create service frontend
+  become: yes
+  template:
+    src: templates/sausage-store-frontend.service.j2
+    dest: /etc/systemd/system/sausage-store-frontend.service
+
+- name: Re-reading the systemd configuration
+  become: yes
+  systemd:
+    daemon_reload: yes
+
+- name: Run and autoload sausage-store-backend.service
+  become: yes
+  service:
+    name: "sausage-store-frontend"
+    enabled: true
+    state: started

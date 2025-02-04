@@ -1,0 +1,10 @@
+nexus_backend_repository_path: repository/std-035-53-backend
+nexus_group_id: com.yandex.practicum.devops
+nexus_artifact_id: sausage-store
+backend_maven_version: "1.0.1739532"
+
+backend_service_user: "jarservice"
+backend_directory: /opt/sausage-store
+backend_report_directory: /opt/sausage-store/reports
+backend_lib_directory: /opt/sausage-store/lib
+backend_jar_file: /opt/sausage-store/lib/sausage-store.jar

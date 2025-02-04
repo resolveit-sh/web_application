@@ -1,0 +1,10 @@
+all:
+  children:
+    sausage_store_backend:
+      hosts:
+        backend:
+          ansible_host: [INSERT_DATA]]
+    sausage_store_frontend:
+      hosts:
+        frontend:
+          ansible_host: [INSERT_DATA]]

@@ -1,0 +1,11 @@
+---
+
+- name: backend tasks
+  hosts: sausage_store_backend
+  roles:
+    - backend
+
+- name: frontend tasks
+  hosts: sausage_store_frontend
+  roles:
+    - frontend

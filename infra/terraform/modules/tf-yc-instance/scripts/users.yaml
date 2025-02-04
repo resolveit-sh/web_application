@@ -1,0 +1,10 @@
+#cloud-config
+groups:
+  - ansible
+users:
+  - name: ansible
+    primary_group: ansible
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh-authorized-keys:
+      - ssh-ed25519 [INSERT_DATA]] eddsa-key-20241219
